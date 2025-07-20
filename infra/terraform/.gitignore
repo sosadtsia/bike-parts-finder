@@ -9,12 +9,10 @@
 crash.log
 crash.*.log
 
-# Exclude all .tfvars files, which are likely to contain sensitive data
-*.tfvars
-*.tfvars.json
-
-# Except example files that are meant to be committed
-!example.tfvars
+# Exclude only specific .tfvars files that are generated or contain sensitive data
+# *.tfvars
+# *.tfvars.json
+argocd.auto.tfvars
 
 # Override files
 override.tf
@@ -28,6 +26,3 @@ terraform.rc
 
 # Lock file - comment this out if you want to commit the lock file
 # .terraform.lock.hcl
-
-# Ignore generated argocd.auto.tfvars
-argocd.auto.tfvars

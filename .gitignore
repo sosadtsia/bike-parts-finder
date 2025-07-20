@@ -4,15 +4,15 @@
 *.tfstate.*
 crash.log
 crash.*.log
-*.tfvars
-*.tfvars.json
+# *.tfvars
+# *.tfvars.json
+argocd.auto.tfvars
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
 .terraformrc
 terraform.rc
-argocd.auto.tfvars
 
 # Go
 *.exe
