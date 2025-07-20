@@ -1,0 +1,56 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: bike-parts-finder
+  namespace: {{ .Release.Namespace }}
+spec:
+  kafka:
+    version: {{ .Chart.AppVersion }}
+    replicas: {{ .Values.replicas.kafka }}
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: tls
+      - name: external
+        port: 9094
+        type: nodeport
+        tls: false
+    config:
+      offsets.topic.replication.factor: {{ .Values.replicas.kafka | default 3 }}
+      transaction.state.log.replication.factor: {{ .Values.replicas.kafka | default 3 }}
+      transaction.state.log.min.isr: {{ div (add1 .Values.replicas.kafka) 2 | int }}
+      default.replication.factor: {{ .Values.replicas.kafka | default 3 }}
+      min.insync.replicas: {{ div (add1 .Values.replicas.kafka) 2 | int }}
+      inter.broker.protocol.version: "3.5"
+    storage:
+      type: jbod
+      volumes:
+      - id: 0
+        type: persistent-claim
+        size: {{ .Values.storage.size }}
+        deleteClaim: false
+        class: {{ .Values.storage.class }}
+    resources:
+      {{- toYaml .Values.resources.kafka | nindent 6 }}
+    jvmOptions:
+      -Xms: 1g
+      -Xmx: 2g
+  zookeeper:
+    replicas: {{ .Values.replicas.zookeeper }}
+    storage:
+      type: persistent-claim
+      size: 20Gi
+      deleteClaim: false
+      class: {{ .Values.storage.class }}
+    resources:
+      {{- toYaml .Values.resources.zookeeper | nindent 6 }}
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}

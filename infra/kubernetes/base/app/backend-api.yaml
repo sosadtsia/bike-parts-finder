@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-api
+  namespace: app
+  labels:
+    app: backend-api
+    region: us-east-2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend-api
+  template:
+    metadata:
+      labels:
+        app: backend-api
+        env: ${ENVIRONMENT:-develop}
+    spec:
+      containers:
+      - name: backend-api
+        image: ${REGISTRY}/bike-parts-finder-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          value: postgres-postgresql.database.svc.cluster.local
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: bikepartsfinder
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: REDIS_HOST
+          value: redis-master.database.svc.cluster.local
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+        - name: KAFKA_BROKERS
+          value: bike-parts-finder-kafka-bootstrap.kafka.svc.cluster.local:9092
+        - name: KAFKA_REQUEST_TOPIC
+          value: scrape-requests
+        - name: KAFKA_RESULT_TOPIC
+          value: scrape-results
+        - name: AWS_REGION
+          value: us-east-2
+        - name: ENVIRONMENT
+          value: ${ENVIRONMENT:-develop}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-api
+  namespace: app
+spec:
+  selector:
+    app: backend-api
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: ClusterIP

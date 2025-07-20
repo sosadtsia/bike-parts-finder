@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scraper
+  namespace: app
+  labels:
+    app: scraper
+    region: us-east-2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: scraper
+  template:
+    metadata:
+      labels:
+        app: scraper
+        env: ${ENVIRONMENT:-develop}
+    spec:
+      containers:
+      - name: scraper
+        image: ${REGISTRY}/bike-parts-finder-scraper:latest
+        imagePullPolicy: Always
+        env:
+        - name: KAFKA_BROKERS
+          value: bike-parts-finder-kafka-bootstrap.kafka.svc.cluster.local:9092
+        - name: KAFKA_REQUEST_TOPIC
+          value: scrape-requests
+        - name: KAFKA_RESULT_TOPIC
+          value: scrape-results
+        - name: SCRAPER_CONCURRENCY
+          value: "5"
+        - name: SCRAPER_USER_AGENT
+          value: "Bike Parts Finder Bot/1.0"
+        - name: SCRAPER_RATE_LIMIT
+          value: "1"  # Requests per second per source
+        - name: AWS_REGION
+          value: us-east-2
+        - name: ENVIRONMENT
+          value: ${ENVIRONMENT:-develop}
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10

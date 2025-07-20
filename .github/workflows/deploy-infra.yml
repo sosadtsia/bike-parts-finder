@@ -1,0 +1,84 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'develop'
+        type: choice
+        options:
+          - develop
+          - production
+
+jobs:
+  deploy:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    env:
+      ENV: ${{ github.event.inputs.environment || 'develop' }}
+      AWS_REGION: us-east-2
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          version: 'latest'
+
+      - name: Setup kubectl
+        uses: kubernetes-sigs/setup-kubectl@v1
+        with:
+          version: 'latest'
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Install Helmfile
+        uses: mamezou-tech/setup-helmfile@v1.2.0
+        with:
+          helmfile-version: 'latest'
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 'latest'
+          tofu_wrapper: false
+
+      - name: Setup kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ env.ENV }}-bike-parts-finder --region ${{ env.AWS_REGION }}
+
+      - name: Bootstrap infrastructure
+        run: |
+          task bootstrap:remote ENV=${{ env.ENV }} REGION=${{ env.AWS_REGION }}
+
+      - name: Verify ArgoCD deployment
+        run: |
+          kubectl -n argocd get applications -o wide

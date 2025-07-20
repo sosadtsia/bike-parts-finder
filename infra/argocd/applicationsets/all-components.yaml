@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: bike-parts-finder-components
+  namespace: argocd
+spec:
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - env: develop
+                  branch: HEAD
+                - env: production
+                  branch: main
+          - list:
+              elements:
+                - component: argocd
+                  path: infra/argocd/applications/argocd.yaml
+                - component: postgres
+                  path: infra/argocd/applications/postgres.yaml
+                - component: redis
+                  path: infra/argocd/applications/redis.yaml
+                - component: kafka
+                  path: infra/argocd/applications/kafka.yaml
+                - component: monitoring
+                  path: infra/argocd/applications/monitoring.yaml
+                - component: backup
+                  path: infra/argocd/applications/backup.yaml
+                - component: api
+                  path: infra/argocd/applications/api.yaml
+                - component: frontend
+                  path: infra/argocd/applications/frontend.yaml
+                - component: scraper
+                  path: infra/argocd/applications/scraper.yaml
+                - component: consumer
+                  path: infra/argocd/applications/consumer.yaml
+  template:
+    metadata:
+      name: '{{env}}-{{component}}'
+      labels:
+        environment: '{{env}}'
+        component: '{{component}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/svosadtsia/bike-parts-finder.git
+        targetRevision: '{{branch}}'
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

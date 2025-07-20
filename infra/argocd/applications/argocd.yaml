@@ -1,0 +1,73 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: bike-parts-finder
+    component: gitops
+    environment: {{env}}
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: argo-cd
+    repoURL: https://argoproj.github.io/argo-helm
+    targetRevision: 5.51.4
+    helm:
+      values: |
+        server:
+          extraArgs:
+            - --insecure
+          config:
+            repositories: |
+              - type: git
+                url: https://github.com/svosadtsia/bike-parts-finder.git
+          rbacConfig:
+            policy.default: role:readonly
+            policy.csv: |
+              g, system:cluster-admins, role:admin
+          ingress:
+            enabled: true
+            annotations:
+              kubernetes.io/ingress.class: alb
+              alb.ingress.kubernetes.io/scheme: internet-facing
+              alb.ingress.kubernetes.io/target-type: ip
+              alb.ingress.kubernetes.io/healthcheck-path: /
+            hosts:
+              - argocd-{{env}}.bikepartsfinder.example.com
+        configs:
+          secret:
+            createSecret: true
+          plugins:
+            helmfile.yaml: |
+              apiVersion: argoproj.io/v1alpha1
+              kind: ConfigManagementPlugin
+              metadata:
+                name: helmfile
+              spec:
+                version: v1.0
+                init:
+                  command: [sh, -c]
+                  args: ["helm plugin install https://github.com/mumoshu/helmfile-diff --version=v3.8.1 || true"]
+                generate:
+                  command: [sh, -c]
+                  args: ["helmfile --no-color -f helmfile.yaml $HELMFILE_GLOBAL_OPTIONS --environment $HELMFILE_ENVIRONMENT $HELMFILE_SELECTOR template"]
+        dex:
+          enabled: false
+        repoServer:
+          autoscaling:
+            enabled: true
+            minReplicas: 2
+        applicationSet:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

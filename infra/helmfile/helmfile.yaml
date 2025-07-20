@@ -1,0 +1,219 @@
+# Bike Parts Finder Helmfile
+# Deploys all required components to the EKS cluster
+
+repositories:
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: strimzi
+    url: https://strimzi.io/charts/
+  - name: velero
+    url: https://vmware-tanzu.github.io/helm-charts
+
+helmDefaults:
+  wait: true
+  timeout: 600
+  createNamespace: true
+
+environments:
+  default: develop
+  develop:
+    values:
+      - environments/develop.yaml
+  production:
+    values:
+      - environments/production.yaml
+
+releases:
+  # PostgreSQL Database
+  - name: postgres
+    namespace: database
+    chart: bitnami/postgresql
+    version: 12.5.8
+    values:
+      - image:
+          tag: 15.3.0
+        global:
+          postgresql:
+            auth:
+              username: bpf
+              database: bikepartsfinder
+              existingSecret: postgres-credentials
+        primary:
+          persistence:
+            enabled: true
+            storageClass: {{ .Environment.Values.storage.class }}
+            size: {{ .Environment.Values.storage.postgres.size }}
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 500m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
+        readReplicas:
+          replicaCount: {{ sub .Environment.Values.replicaCounts.postgres 1 }}
+          persistence:
+            enabled: true
+            storageClass: {{ .Environment.Values.storage.class }}
+            size: {{ .Environment.Values.storage.postgres.size }}
+
+  # Redis Cache
+  - name: redis
+    namespace: database
+    chart: bitnami/redis
+    version: 17.11.3
+    values:
+      - image:
+          tag: 7.0.12
+        auth:
+          enabled: true
+          existingSecret: redis-credentials
+        master:
+          persistence:
+            enabled: true
+            storageClass: {{ .Environment.Values.storage.class }}
+            size: {{ .Environment.Values.storage.redis.size }}
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi
+              cpu: 500m
+        replica:
+          replicaCount: {{ sub .Environment.Values.replicaCounts.redis 1 }}
+          persistence:
+            enabled: true
+            storageClass: {{ .Environment.Values.storage.class }}
+            size: {{ .Environment.Values.storage.redis.size }}
+
+  # Kafka Message Broker
+  - name: kafka-operator
+    namespace: kafka
+    chart: strimzi/strimzi-kafka-operator
+    version: 0.34.0
+    values: []
+
+  # Deploy Kafka cluster after the operator is installed
+  - name: kafka-cluster
+    namespace: kafka
+    chart: ./charts/kafka-cluster
+    needs:
+      - kafka/kafka-operator
+    values:
+      - replicas:
+          kafka: {{ .Environment.Values.replicaCounts.kafka }}
+          zookeeper: {{ .Environment.Values.replicaCounts.zookeeper }}
+        storage:
+          class: {{ .Environment.Values.storage.class }}
+          size: {{ .Environment.Values.storage.kafka.size }}
+
+  # Prometheus for monitoring
+  - name: prometheus
+    namespace: monitoring
+    chart: prometheus-community/kube-prometheus-stack
+    version: 48.1.1
+    values:
+      - grafana:
+          enabled: true
+          adminPassword: admin
+          persistence:
+            enabled: true
+            storageClass: {{ .Environment.Values.storage.class }}
+            size: {{ .Environment.Values.storage.grafana.size }}
+        prometheus:
+          prometheusSpec:
+            retention: 10d
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  storageClassName: {{ .Environment.Values.storage.class }}
+                  resources:
+                    requests:
+                      storage: {{ .Environment.Values.storage.prometheus.size }}
+
+  # Velero for backup
+  - name: velero
+    namespace: velero
+    chart: velero/velero
+    version: 3.1.0
+    values:
+      - configuration:
+          provider: aws
+          backupStorageLocation:
+            bucket: "bikepartsfinder-backups-{{ .Environment.Name }}"
+            config:
+              region: {{ .Environment.Values.region }}
+          volumeSnapshotLocation:
+            config:
+              region: {{ .Environment.Values.region }}
+        initContainers:
+          - name: velero-plugin-for-aws
+            image: velero/velero-plugin-for-aws:v1.6.0
+            volumeMounts:
+              - mountPath: /target
+                name: plugins
+        credentials:
+          useSecret: true
+          existingSecret: velero-credentials
+        schedules:
+          daily-backup:
+            schedule: {{ .Environment.Values.backup.schedule }}
+            template:
+              ttl: {{ .Environment.Values.backup.retention }}
+              includedNamespaces:
+                - database
+                - kafka
+                - monitoring
+                - app
+
+  # API Backend
+  - name: api
+    namespace: app
+    chart: ./charts/api
+    values:
+      - replicaCount: {{ .Environment.Values.replicaCounts.api }}
+        resources: {{ .Environment.Values.resources.api | toYaml | nindent 10 }}
+        environment:
+          name: {{ .Environment.Name }}
+
+  # Scraper Service
+  - name: scraper
+    namespace: app
+    chart: ./charts/scraper
+    values:
+      - replicaCount: {{ .Environment.Values.replicaCounts.scraper }}
+        resources: {{ .Environment.Values.resources.scraper | toYaml | nindent 10 }}
+        environment:
+          name: {{ .Environment.Name }}
+        scraper:
+          concurrency: {{ .Environment.Values.scraper.concurrency }}
+          rateLimit: {{ .Environment.Values.scraper.rateLimit }}
+
+  # Kafka Consumer
+  - name: consumer
+    namespace: app
+    chart: ./charts/consumer
+    values:
+      - replicaCount: {{ .Environment.Values.replicaCounts.consumer }}
+        resources: {{ .Environment.Values.resources.consumer | toYaml | nindent 10 }}
+        environment:
+          name: {{ .Environment.Name }}
+
+  # Frontend
+  - name: frontend
+    namespace: app
+    chart: ./charts/frontend
+    values:
+      - replicaCount: {{ .Environment.Values.replicaCounts.frontend }}
+        resources: {{ .Environment.Values.resources.frontend | toYaml | nindent 10 }}
+        environment:
+          name: {{ .Environment.Name }}
+        ingress:
+          enabled: {{ .Environment.Values.ingress.enabled }}
+          annotations: {{ .Environment.Values.ingress.annotations | toYaml | nindent 12 }}
+          host: {{ .Environment.Values.ingress.host }}

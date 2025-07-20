@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: bike-parts-finder
+    environment: {{env}}
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/svosadtsia/bike-parts-finder.git
+    targetRevision: HEAD
+    path: infra/helmfile
+    plugin:
+      name: helmfile
+      env:
+        - name: HELMFILE_ENVIRONMENT
+          value: {{env}}
+        - name: HELMFILE_SELECTOR
+          value: "name=prometheus"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

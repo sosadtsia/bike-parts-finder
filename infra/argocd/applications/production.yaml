@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bike-parts-finder-production
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/svosadtsia/bike-parts-finder.git
+    targetRevision: main # Using main branch for production
+    path: infra/helmfile
+    plugin:
+      name: helmfile
+      env:
+        - name: HELMFILE_ENVIRONMENT
+          value: production # Use production environment
+        - name: HELMFILE_GLOBAL_OPTIONS
+          value: "--log-level info"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: false # Safer setting for production
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true # Only apply resources that are out of sync
+      - Validate=true # Validate resources before applying
