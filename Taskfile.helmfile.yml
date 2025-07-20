@@ -1,0 +1,37 @@
+version: "3"
+
+tasks:
+  default:
+    cmds:
+      - task -l
+    silent: true
+
+  develop:
+    desc: Deploy the develop environment to local Kind cluster
+    cmds:
+      - |
+        helmfile --environment develop apply
+
+  diff:
+    desc: Show diff between current deployed state and local Helmfile state
+    cmds:
+      - |
+        helmfile --environment develop diff
+
+  apply:
+    desc: Apply Helmfile changes to the cluster
+    cmds:
+      - |
+        helmfile --environment {{.ENV}} apply
+
+  template:
+    desc: Show generated manifests without applying
+    cmds:
+      - |
+        helmfile --environment {{.ENV}} template
+
+  sync:
+    desc: Sync all Helm releases with Helmfile
+    cmds:
+      - |
+        helmfile --environment {{.ENV}} sync

@@ -1,55 +1,70 @@
+## ArgoCD Helm Values
+global:
+  domain: ${domain}
+
 server:
   extraArgs:
     - --insecure
+  ingress:
+    enabled: ${create_ingress}
+    ingressClassName: nginx
+    hosts:
+      - ${domain}
+    annotations:
+      kubernetes.io/tls-acme: "true"
+    tls:
+      - secretName: argocd-tls-secret
+        hosts:
+          - ${domain}
   config:
     repositories: |
       - type: git
         url: ${repo_url}
-    url: https://argocd-${environment}.${domain}
-    application.resourceTrackingMethod: annotation
-  rbacConfig:
-    policy.default: role:readonly
-    policy.csv: |
-      g, system:cluster-admins, role:admin
-  ingress:
-    enabled: ${create_ingress}
-    annotations:
-      kubernetes.io/ingress.class: alb
-      alb.ingress.kubernetes.io/scheme: internet-facing
-      alb.ingress.kubernetes.io/target-type: ip
-      alb.ingress.kubernetes.io/healthcheck-path: /
-    hosts:
-      - argocd-${environment}.${domain}
+        name: app-repo
+    resource.customizations: |
+      argoproj.io/Application:
+        health.lua: |
+          hs = {}
+          hs.status = "Progressing"
+          hs.message = ""
+          if obj.status ~= nil then
+            if obj.status.health ~= nil then
+              hs.status = obj.status.health.status
+              if obj.status.health.message ~= nil then
+                hs.message = obj.status.health.message
+              end
+            end
+          end
+          return hs
 
-configs:
-  secret:
-    createSecret: true
-  plugins:
-    helmfile.yaml: |
-      apiVersion: argoproj.io/v1alpha1
-      kind: ConfigManagementPlugin
-      metadata:
-        name: helmfile
-      spec:
-        version: v1.0
-        init:
-          command: [sh, -c]
-          args: ["helm plugin install https://github.com/mumoshu/helmfile-diff --version=v3.8.1 || true"]
-        generate:
-          command: [sh, -c]
-          args: ["helmfile --no-color -f helmfile.yaml $HELMFILE_GLOBAL_OPTIONS --environment $HELMFILE_ENVIRONMENT $HELMFILE_SELECTOR template"]
+controller:
+  metrics:
+    enabled: true
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
 
 dex:
   enabled: ${enable_dex}
 
+redis:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
 repoServer:
-  autoscaling:
-    enabled: ${cluster_autoscaler_enabled}
-    minReplicas: 2
-
-applicationSet:
-  enabled: true
-
-global:
-  securityContext:
-    fsGroup: 65534
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi

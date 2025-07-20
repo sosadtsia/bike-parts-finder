@@ -1,0 +1,42 @@
+version: "3"
+
+tasks:
+  default:
+    cmds:
+      - task -l
+    silent: true
+
+  password:
+    desc: Get ArgoCD admin password
+    cmds:
+      - |
+        echo "🔑 ArgoCD admin password:"
+        kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+        echo ""
+
+  port-forward:
+    desc: Port forward ArgoCD server to localhost:8080
+    interactive: true
+    cmds:
+      - |
+        echo "🔗 Port forwarding ArgoCD server to https://localhost:8080"
+        kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+  apps:
+    desc: Show ArgoCD applications
+    cmds:
+      - |
+        kubectl -n argocd get applications
+
+  sync:
+    desc: Sync an ArgoCD application
+    cmds:
+      - |
+        kubectl -n argocd patch application {{.APP}} --type merge -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
+
+  health:
+    desc: Check health of ArgoCD applications
+    cmds:
+      - |
+        echo "Checking health of ArgoCD applications..."
+        kubectl -n argocd get applications -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.health.status}{"\t"}{.status.sync.status}{"\n"}{end}'

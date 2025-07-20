@@ -1,0 +1,38 @@
+version: '3'
+
+vars:
+  REGISTRY_PORT: '{{.REGISTRY_PORT | default "5000"}}'
+
+tasks:
+  default:
+    cmds:
+      - task -l
+    silent: true
+    
+  build-all:
+    desc: Build all Docker images
+    cmds:
+      - task: build-api
+      - task: build-scraper
+      - task: build-consumer
+
+  build-api:
+    desc: Build API Docker image
+    cmds:
+      - |
+        docker build -t localhost:{{.REGISTRY_PORT}}/bike-parts-finder-api:latest -f cmd/api/Dockerfile .
+        docker push localhost:{{.REGISTRY_PORT}}/bike-parts-finder-api:latest
+
+  build-scraper:
+    desc: Build Scraper Docker image
+    cmds:
+      - |
+        docker build -t localhost:{{.REGISTRY_PORT}}/bike-parts-finder-scraper:latest -f cmd/scraper/Dockerfile .
+        docker push localhost:{{.REGISTRY_PORT}}/bike-parts-finder-scraper:latest
+
+  build-consumer:
+    desc: Build Consumer Docker image
+    cmds:
+      - |
+        docker build -t localhost:{{.REGISTRY_PORT}}/bike-parts-finder-consumer:latest -f cmd/consumer/Dockerfile .
+        docker push localhost:{{.REGISTRY_PORT}}/bike-parts-finder-consumer:latest

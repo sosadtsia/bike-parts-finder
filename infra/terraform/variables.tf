@@ -5,7 +5,7 @@ variable "project_name" {
 }
 
 variable "environment" {
-  description = "Environment (develop, production)"
+  description = "The environment to deploy to"
   type        = string
   default     = "develop"
 }
@@ -14,6 +14,30 @@ variable "aws_region" {
   description = "AWS region to deploy to"
   type        = string
   default     = "us-east-2"
+}
+
+variable "region" {
+  description = "AWS region to deploy to (alias for aws_region for compatibility with tfvars)"
+  type        = string
+  default     = "us-east-2"
+}
+
+variable "prefix" {
+  description = "The prefix used for deployment purposes, affects all names of all resources"
+  type        = string
+  default     = "use2-develop-"
+}
+
+variable "cluster_name" {
+  description = "Name of the EKS cluster"
+  type        = string
+  default     = null
+}
+
+variable "kubernetes_version" {
+  description = "Kubernetes version to use for the EKS cluster"
+  type        = string
+  default     = null
 }
 
 variable "cluster_version" {
@@ -46,28 +70,32 @@ variable "public_subnets" {
   default     = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
 }
 
-variable "db_instance_class" {
-  description = "RDS instance type"
-  type        = string
-  default     = "db.t3.medium"
+variable "tags" {
+  description = "A map of tags to add to all resources"
+  type        = map(string)
+  default     = null
 }
 
-variable "db_allocated_storage" {
-  description = "Allocated storage for the database in GB"
-  type        = number
-  default     = 20
-}
-
-variable "db_name" {
-  description = "Name of the database"
-  type        = string
-  default     = "bikepartsfinder"
-}
-
-variable "db_username" {
-  description = "Master username for the database"
-  type        = string
-  default     = "postgres" # In production, this should be set via environment variables or secrets
+variable "node_groups" {
+  description = "Map of EKS node group configurations"
+  type        = map(object({
+    name           = string
+    instance_types = list(string)
+    min_size       = number
+    max_size       = number
+    desired_size   = number
+    disk_size      = number
+  }))
+  default = {
+    default = {
+      name           = "default"
+      instance_types = ["t3.medium"]
+      min_size       = 1
+      max_size       = 3
+      desired_size   = 2
+      disk_size      = 50
+    }
+  }
 }
 
 variable "velero_bucket_name" {
@@ -96,6 +124,12 @@ variable "create_argocd_ingress" {
 
 variable "enable_argocd_dex" {
   description = "Whether to enable Dex authentication for ArgoCD"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_argocd" {
+  description = "Whether to deploy ArgoCD Kubernetes resources"
   type        = bool
   default     = false
 }

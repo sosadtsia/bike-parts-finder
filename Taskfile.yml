@@ -1,14 +1,32 @@
-version: '3'
+version: "3"
 
 vars:
-  ENV: '{{.ENV | default "develop"}}'
-  REGION: '{{.REGION | default "us-east-2"}}'
+  ENV: 'develop'
+  REGION: 'us-east-2'
   PROJECT_NAME: bike-parts-finder
-  TERRAFORM_DIR: ./infra/terraform
-  STATE_BUCKET: '{{.PROJECT_NAME}}-tfstate-{{.ENV}}'
-  STATE_KEY: '{{.ENV}}/terraform.tfstate'
-  USE_REMOTE: '{{.USE_REMOTE | default "false"}}'
   REGISTRY_PORT: 5000
+
+includes:
+  kind:
+    taskfile: ./Taskfile.kind.yml
+    dir: .
+    optional: true
+  eks:
+    taskfile: ./Taskfile.eks.yaml
+    dir: .
+    optional: true
+  docker:
+    taskfile: ./Taskfile.docker.yml
+    dir: .
+    optional: true
+  helmfile:
+    taskfile: ./Taskfile.helmfile.yml
+    dir: .
+    optional: true
+  argocd:
+    taskfile: ./Taskfile.argocd.yml
+    dir: .
+    optional: true
 
 tasks:
   check:deps:
@@ -20,239 +38,61 @@ tasks:
         silent: true
       - cmd: which helm
         silent: true
-      - cmd: which aws
+      - cmd: which helmfile
         silent: true
-    status:
-      - which tofu >/dev/null
-      - which kubectl >/dev/null
-      - which helm >/dev/null
-      - which aws >/dev/null
+      - cmd: which docker
+        silent: true
+      - cmd: which kind
+        silent: true
 
-  setup:s3:
-    desc: Setup S3 bucket for remote state (only used when USE_REMOTE=true)
-    cmds:
-      - |
-        if ! aws s3api head-bucket --bucket "{{.STATE_BUCKET}}" --region "{{.REGION}}" 2>/dev/null; then
-          echo "Creating S3 bucket for state: {{.STATE_BUCKET}}"
-          aws s3api create-bucket \
-            --bucket "{{.STATE_BUCKET}}" \
-            --region "{{.REGION}}" \
-            --create-bucket-configuration LocationConstraint="{{.REGION}}"
-
-          aws s3api put-bucket-versioning \
-            --bucket "{{.STATE_BUCKET}}" \
-            --versioning-configuration Status=Enabled \
-            --region "{{.REGION}}"
-
-          aws s3api put-bucket-encryption \
-            --bucket "{{.STATE_BUCKET}}" \
-            --server-side-encryption-configuration '{
-              "Rules": [
-                {
-                  "ApplyServerSideEncryptionByDefault": {
-                    "SSEAlgorithm": "AES256"
-                  }
-                }
-              ]
-            }' \
-            --region "{{.REGION}}"
-        else
-          echo "S3 bucket {{.STATE_BUCKET}} already exists."
-        fi
-
-  init:
-    desc: Initialize OpenTofu with local or remote backend
+  # Deployment tasks with consistent naming
+  deploy:kind:
+    desc: Deploy a local Kind cluster with all components
     deps: [check:deps]
-    dir: "{{.TERRAFORM_DIR}}"
-    vars:
-      INIT_ARGS: >-
-        {{if eq .USE_REMOTE "true"}}
-        -backend-config="bucket={{.STATE_BUCKET}}"
-        -backend-config="key={{.STATE_KEY}}"
-        -backend-config="region={{.REGION}}"
-        {{end}}
     cmds:
-      - |
-        if [ "{{.USE_REMOTE}}" = "true" ]; then
-          echo "🔄 Initializing OpenTofu with remote S3 backend..."
-          task setup:s3
-        else
-          echo "🔄 Initializing OpenTofu with local backend..."
-        fi
-      - tofu init {{.INIT_ARGS}}
+      - task: kind:create
+      - task: docker:build-all
+      - task: kind:load-images
+      - task: helmfile:develop
+      - task: argocd:password
+      - echo "✅ Kind deployment complete!"
 
-  set:vars:
-    desc: Set environment-specific variables
-    dir: "{{.TERRAFORM_DIR}}"
+  deploy:eks:
+    desc: Deploy to Amazon EKS
+    deps: [check:deps]
     cmds:
-      - |
-        echo "📝 Creating terraform.tfvars..."
-        cat > terraform.tfvars << EOF
-        environment = "{{.ENV}}"
-        aws_region = "{{.REGION}}"
-        project_name = "{{.PROJECT_NAME}}"
-        domain_suffix = "{{.ENV}}.example.com"
-        EOF
-        echo "✅ Terraform variables file created at {{.TERRAFORM_DIR}}/terraform.tfvars"
+      - task: eks:deploy-bootstrap
+      - echo "⏳ Waiting for EKS cluster to be ready..."
+      - sleep 30
+      - task: eks:deploy-argocd
+      - echo "✅ EKS deployment complete!"
 
-  plan:
-    desc: Plan infrastructure changes
-    deps: [init, set:vars]
-    dir: "{{.TERRAFORM_DIR}}"
+  # Setup aliases
+  setup:local:
+    desc: Set up complete local development environment (alias for deploy:kind)
     cmds:
-      - echo "📋 Planning changes for environment: {{.ENV}}"
-      - tofu plan -out=tfplan
+      - task: deploy:kind
 
-  apply:
-    desc: Apply infrastructure changes
-    deps: [plan]
-    dir: "{{.TERRAFORM_DIR}}"
+  # Bootstrap tasks
+  bootstrap:remote:
+    desc: Bootstrap with remote state (for CI/CD)
+    deps: [check:deps]
     cmds:
-      - echo "🚀 Applying changes for environment: {{.ENV}}"
-      - tofu apply -auto-approve tfplan
-
-  destroy:
-    desc: Destroy infrastructure
-    deps: [init, set:vars]
-    dir: "{{.TERRAFORM_DIR}}"
-    cmds:
-      - echo "💥 Destroying infrastructure for environment: {{.ENV}}"
-      - tofu destroy -auto-approve
-
-  # OpenTofu Kind cluster management
-  kind:init:
-    desc: Initialize OpenTofu for local Kind cluster
-    dir: infra/terraform/local
-    cmds:
-      - tofu init
-
-  kind:plan:
-    desc: Plan Kind cluster creation
-    dir: infra/terraform/local
-    cmds:
-      - tofu plan -out=tfplan
-
-  kind:apply:
-    desc: Create Kind cluster using OpenTofu
-    dir: infra/terraform/local
-    cmds:
-      - tofu apply -auto-approve tfplan
-
-  kind:destroy:
-    desc: Destroy Kind cluster using OpenTofu
-    dir: infra/terraform/local
-    cmds:
-      - tofu destroy -auto-approve
-
-  # Docker image management
-  docker:build-all:
-    desc: Build all Docker images
-    cmds:
-      - task docker:build-api
-      - task docker:build-scraper
-      - task docker:build-consumer
-      - task docker:build-frontend
-
-  docker:build-api:
-    desc: Build API Docker image
-    cmds:
-      - docker build -t localhost:{{.REGISTRY_PORT}}/bike-parts-finder-api:latest -f cmd/api/Dockerfile .
-      - docker push localhost:{{.REGISTRY_PORT}}/bike-parts-finder-api:latest
-
-  docker:build-scraper:
-    desc: Build Scraper Docker image
-    cmds:
-      - docker build -t localhost:{{.REGISTRY_PORT}}/bike-parts-finder-scraper:latest -f cmd/scraper/Dockerfile .
-      - docker push localhost:{{.REGISTRY_PORT}}/bike-parts-finder-scraper:latest
-
-  docker:build-consumer:
-    desc: Build Consumer Docker image
-    cmds:
-      - docker build -t localhost:{{.REGISTRY_PORT}}/bike-parts-finder-consumer:latest -f cmd/consumer/Dockerfile .
-      - docker push localhost:{{.REGISTRY_PORT}}/bike-parts-finder-consumer:latest
-
-  docker:build-frontend:
-    desc: Build Frontend Docker image
-    cmds:
-      - docker build -t localhost:{{.REGISTRY_PORT}}/bike-parts-finder-frontend:latest -f web/frontend/Dockerfile web/frontend
-      - docker push localhost:{{.REGISTRY_PORT}}/bike-parts-finder-frontend:latest
-
-  # Helmfile deployment to local Kind cluster
-  helmfile:develop:
-    desc: Deploy the develop environment to local Kind cluster
-    cmds:
-      - helmfile --environment develop apply
-
-  helmfile:diff:
-    desc: Show diff between current deployed state and local Helmfile state
-    cmds:
-      - helmfile --environment develop diff
-
-  # ArgoCD utils
-  argocd:password:
-    desc: Get ArgoCD admin password
-    cmds:
-      - echo "🔑 ArgoCD admin password:"
-      - kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-      - echo ""
-
-  argocd:port-forward:
-    desc: Port forward ArgoCD server to localhost:8080
-    cmds:
-      - echo "🔗 Port forwarding ArgoCD server to https://localhost:8080"
-      - kubectl port-forward svc/argocd-server -n argocd 8080:443
-    interactive: true
-
-  argocd:apps:
-    desc: Show ArgoCD applications
-    cmds:
-      - kubectl -n argocd get applications
+      - task: eks:init
+      - task: eks:apply
+        vars: { ENV: "{{.ENV}}" }
+      - echo "✅ Remote bootstrap complete!"
 
   bootstrap:local:
-    desc: Bootstrap ArgoCD locally with local state
+    desc: Bootstrap environment locally
+    deps: [check:deps]
     cmds:
-      - task: init
-        vars:
-          USE_REMOTE: "false"
-      - task: set:vars
-      - task: apply
-      - task: argocd:password
-      - |
-        echo ""
-        echo "✅ Local bootstrap complete!"
-        echo ""
-        echo "Access ArgoCD UI:"
-        echo "  1. Run: task argocd:portforward"
-        echo "  2. Open in browser: https://localhost:8080"
-        echo "  3. Login with username 'admin' and the password shown above"
-        echo ""
-
-  bootstrap:remote:
-    desc: Bootstrap ArgoCD with remote state (for CI/CD)
-    cmds:
-      - task: init
-        vars:
-          USE_REMOTE: "true"
-      - task: set:vars
-      - task: apply
-      - |
-        echo ""
-        echo "✅ Remote bootstrap complete!"
-
-  # Setup complete local environment
-  setup:local:
-    desc: Set up complete local development environment
-    cmds:
-      - task kind:init
-      - task kind:plan
-      - task kind:apply
-      - task docker:build-all
-      - task helmfile:develop
-      - task argocd:password
-      - echo "Local development environment is ready!"
+      - task: eks:init
+      - task: eks:apply
+      - echo "✅ Local bootstrap complete!"
 
   # Clean up local environment
   clean:local:
     desc: Clean up local development environment
     cmds:
-      - task kind:destroy
+      - task: kind:destroy

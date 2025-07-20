@@ -1,0 +1,161 @@
+version: '3'
+
+vars:
+  CLUSTER_NAME: bike-parts-finder
+  REGISTRY_NAME: kind-registry
+  REGISTRY_PORT: 5000
+  REGISTRY_CONTAINER: "{{.REGISTRY_NAME}}"
+  TOFU_DIR: infra/terraform/local
+
+tasks:
+  default:
+    cmds:
+      - task -l
+    silent: true
+
+  deploy:create:
+    desc: Create a Kind cluster with a local Docker registry
+    cmds:
+      - task: ensure-registry
+      - task: tf-apply
+      - task: connect-registry
+      - task: load-images
+      - |
+        echo "Kind cluster '{{.CLUSTER_NAME}}' is ready!"
+        echo "Images can be pushed to localhost:{{.REGISTRY_PORT}}"
+
+  deploy:destroy:
+    desc: Destroy the Kind cluster and clean up resources
+    cmds:
+      - task: tf-destroy
+      - |
+        docker stop {{.REGISTRY_CONTAINER}} || true
+        docker rm {{.REGISTRY_CONTAINER}} || true
+        echo "Kind cluster '{{.CLUSTER_NAME}}' and registry destroyed"
+
+  # Old task names kept for backward compatibility
+  create:
+    desc: Create a Kind cluster with a local Docker registry (alias for deploy:create)
+    cmds:
+      - task deploy:create
+
+  destroy:
+    desc: Destroy the Kind cluster and clean up resources (alias for deploy:destroy)
+    cmds:
+      - task deploy:destroy
+
+  ensure-registry:
+    desc: Ensure local registry is running
+    cmds:
+      - |
+        if ! docker inspect {{.REGISTRY_CONTAINER}} >/dev/null 2>&1; then
+          echo "Creating registry container..."
+          docker run -d --restart=always -p "{{.REGISTRY_PORT}}:5000" --name {{.REGISTRY_CONTAINER}} registry:2
+        else
+          echo "Registry container already exists"
+        fi
+
+  connect-registry:
+    desc: Connect the registry to the Kind network
+    cmds:
+      - |
+        # Connect registry to kind network if not already connected
+        if [ "$(docker inspect -f='{{json .NetworkSettings.Networks.kind}}' {{.REGISTRY_CONTAINER}})" = "null" ]; then
+          docker network connect kind {{.REGISTRY_CONTAINER}}
+          echo "Connected registry to kind network"
+        else
+          echo "Registry already connected to kind network"
+        fi
+
+  load-images:
+    desc: Build and load images into Kind
+    cmds:
+      - task: build-api
+      - task: build-scraper
+      - task: build-consumer
+      - |
+        echo "All images loaded into Kind cluster"
+
+  build-api:
+    desc: Build and load API image into Kind
+    cmds:
+      - |
+        docker build -t localhost:{{.REGISTRY_PORT}}/bike-parts-finder-api:latest -f cmd/api/Dockerfile .
+        docker push localhost:{{.REGISTRY_PORT}}/bike-parts-finder-api:latest
+
+  build-scraper:
+    desc: Build and load Scraper image into Kind
+    cmds:
+      - |
+        docker build -t localhost:{{.REGISTRY_PORT}}/bike-parts-finder-scraper:latest -f cmd/scraper/Dockerfile .
+        docker push localhost:{{.REGISTRY_PORT}}/bike-parts-finder-scraper:latest
+
+  build-consumer:
+    desc: Build and load Consumer image into Kind
+    cmds:
+      - |
+        docker build -t localhost:{{.REGISTRY_PORT}}/bike-parts-finder-consumer:latest -f cmd/consumer/Dockerfile .
+        docker push localhost:{{.REGISTRY_PORT}}/bike-parts-finder-consumer:latest
+
+  tf-init:
+    desc: Initialize OpenTofu for local Kind cluster
+    dir: '{{.TOFU_DIR}}'
+    cmds:
+      - tofu init
+
+  tf-plan:
+    desc: Plan OpenTofu changes for Kind cluster
+    dir: '{{.TOFU_DIR}}'
+    deps: [tf-init]
+    cmds:
+      - tofu plan
+
+  tf-apply:
+    desc: Apply OpenTofu changes to create Kind cluster
+    dir: '{{.TOFU_DIR}}'
+    deps: [tf-init]
+    cmds:
+      - tofu apply -auto-approve
+
+  tf-destroy:
+    desc: Destroy Kind cluster with OpenTofu
+    dir: '{{.TOFU_DIR}}'
+    deps: [tf-init]
+    cmds:
+      - tofu destroy -auto-approve
+
+  kubectl-apply:
+    desc: Apply Kubernetes manifests to Kind cluster
+    cmds:
+      - kubectl apply -f {{.CLI_ARGS}}
+
+  helmfile:
+    desc: Run helmfile command on Kind cluster
+    cmds:
+      - helmfile -e develop {{.CLI_ARGS}}
+
+  dashboard:
+    desc: Deploy and access Kubernetes dashboard
+    interactive: true
+    cmds:
+      - |
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+        kubectl create serviceaccount dashboard-admin -n kubernetes-dashboard || true
+        kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:dashboard-admin || true
+        echo "Getting token for dashboard access..."
+        kubectl -n kubernetes-dashboard create token dashboard-admin
+        echo "Starting proxy, access dashboard at: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/"
+        kubectl proxy
+
+  get-kubeconfig:
+    desc: Print command to set KUBECONFIG for this cluster
+    cmds:
+      - export KUBECONFIG=$(kind get kubeconfig --name {{.CLUSTER_NAME}})
+
+  setup-hosts:
+    desc: Add local hosts entries for services
+    interactive: true
+    cmds:
+      - |
+        echo "Adding bike-parts-finder.local to /etc/hosts..."
+        sudo sh -c "echo '127.0.0.1 bike-parts-finder.local' >> /etc/hosts"

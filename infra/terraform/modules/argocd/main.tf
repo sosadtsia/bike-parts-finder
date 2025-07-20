@@ -1,27 +1,38 @@
+# Create a local to determine if the Kubernetes provider is available
+locals {
+  has_kubernetes_provider = var.eks_endpoint != ""
+}
+
 resource "kubernetes_namespace" "argocd" {
+  # Only create if we have connection to the cluster
+  count = local.has_kubernetes_provider ? 1 : 0
+
   metadata {
     name = var.namespace
-    labels = {
-      "app.kubernetes.io/part-of" = "argocd"
-    }
   }
+
+  depends_on = [
+    var.eks_cluster_id
+  ]
 }
 
 resource "helm_release" "argocd" {
+  # Only create if we have connection to the cluster
+  count = local.has_kubernetes_provider ? 1 : 0
+
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
   version    = var.argocd_version
-  namespace  = kubernetes_namespace.argocd.metadata[0].name
+  namespace  = try(kubernetes_namespace.argocd[0].metadata[0].name, var.namespace)
 
   values = [
     templatefile("${path.module}/values.yaml.tpl", {
-      environment                = var.environment
       domain                     = var.domain
-      repo_url                   = var.repo_url
-      create_ingress             = var.create_ingress
       enable_dex                 = var.enable_dex
+      create_ingress             = var.create_ingress
       cluster_autoscaler_enabled = var.cluster_autoscaler_enabled
+      repo_url                   = var.repo_url
     })
   ]
 
@@ -31,9 +42,12 @@ resource "helm_release" "argocd" {
 }
 
 resource "kubernetes_config_map" "helmfile_plugin" {
+  # Only create if we have connection to the cluster
+  count = local.has_kubernetes_provider ? 1 : 0
+
   metadata {
     name      = "helmfile-plugin"
-    namespace = kubernetes_namespace.argocd.metadata[0].name
+    namespace = try(kubernetes_namespace.argocd[0].metadata[0].name, var.namespace)
   }
 
   data = {
@@ -59,12 +73,15 @@ resource "kubernetes_config_map" "helmfile_plugin" {
 }
 
 resource "kubernetes_manifest" "applicationset_components" {
+  # Only create if we have connection to the cluster
+  count = local.has_kubernetes_provider ? 1 : 0
+
   manifest = {
     apiVersion = "argoproj.io/v1alpha1"
     kind       = "ApplicationSet"
     metadata = {
       name      = "bike-parts-finder-components"
-      namespace = kubernetes_namespace.argocd.metadata[0].name
+      namespace = try(kubernetes_namespace.argocd[0].metadata[0].name, var.namespace)
     }
     spec = {
       generators = [
@@ -165,6 +182,7 @@ resource "kubernetes_manifest" "applicationset_components" {
   }
 
   depends_on = [
-    helm_release.argocd
+    helm_release.argocd,
+    kubernetes_config_map.helmfile_plugin
   ]
 }

@@ -1,23 +1,18 @@
 terraform {
-  required_version = ">= 1.0.0"
+  required_version = ">= 1.6.0"
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.23"
+      version = "~> 2.24"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.10"
+      version = "~> 2.11"
     }
   }
-
-  # Backend configuration - will be filled dynamically
-  # For local development, use local state
-  # For CI/CD, S3 backend will be configured via CLI params
-  backend "s3" {}
 }

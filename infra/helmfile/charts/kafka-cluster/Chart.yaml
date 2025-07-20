@@ -1,6 +1,0 @@
-apiVersion: v2
-name: kafka-cluster
-description: Kafka cluster for Bike Parts Finder
-type: application
-version: 0.1.0
-appVersion: "3.5.0"
