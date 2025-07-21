@@ -1,0 +1,86 @@
+# Production environment configuration
+domain: bikeparts.example.com
+
+# PostgreSQL
+postgres:
+  storage: 20Gi
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+# Redis
+redis:
+  storage: 10Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# Kafka
+kafka:
+  storage: 50Gi
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "500m"
+    limits:
+      memory: "4Gi"
+      cpu: "1000m"
+
+# API service
+api:
+  replicas: 3
+  image:
+    repository: bike-parts-finder/api
+    tag: stable
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  debug: false
+
+# Scraper service
+scraper:
+  replicas: 2
+  image:
+    repository: bike-parts-finder/scraper
+    tag: stable
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  debug: false
+
+# Consumer service
+consumer:
+  replicas: 2
+  image:
+    repository: bike-parts-finder/consumer
+    tag: stable
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  debug: false
+
+# Monitoring
+monitoring:
+  enabled: true
+  alertmanager:
+    enabled: true

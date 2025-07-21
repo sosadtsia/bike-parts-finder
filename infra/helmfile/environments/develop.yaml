@@ -1,0 +1,26 @@
+# Development environment configuration
+domain: dev.example.com
+
+# API service development settings
+api:
+  replicas: 1
+  image:
+    repository: bike-parts-finder/api
+    tag: develop
+  debug: true
+
+# Scraper service development settings
+scraper:
+  replicas: 1
+  image:
+    repository: bike-parts-finder/scraper
+    tag: develop
+  debug: true
+
+# Consumer service development settings
+consumer:
+  replicas: 1
+  image:
+    repository: bike-parts-finder/consumer
+    tag: develop
+  debug: true

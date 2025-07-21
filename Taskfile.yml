@@ -43,7 +43,7 @@ tasks:
       - cmd: which docker
         silent: true
       - cmd: which kind
-        silent: true
+    silent: true
 
   # Deployment tasks with consistent naming
   deploy:kind:

@@ -1,0 +1,87 @@
+# Default environment values for all environments
+namespace: bike-parts-finder
+domain: example.com
+
+# PostgreSQL
+postgres:
+  username: postgres
+  password: postgres
+  database: bike_parts_finder
+  storage: 1Gi
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# Redis
+redis:
+  storage: 1Gi
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+# Kafka
+kafka:
+  storage: 2Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# API service
+api:
+  replicas: 1
+  image:
+    repository: bike-parts-finder/api
+    tag: latest
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Scraper service
+scraper:
+  replicas: 1
+  image:
+    repository: bike-parts-finder/scraper
+    tag: latest
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Consumer service
+consumer:
+  replicas: 1
+  image:
+    repository: bike-parts-finder/consumer
+    tag: latest
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Monitoring
+monitoring:
+  enabled: true
+  alertmanager:
+    enabled: false

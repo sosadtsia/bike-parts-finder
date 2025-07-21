@@ -1,0 +1,18 @@
+FROM golang:1.22-alpine
+
+WORKDIR /app
+
+# Install build tools
+RUN apk add --no-cache make bash
+
+# Copy files
+COPY . .
+
+# Install dependencies
+RUN go mod download
+
+# Build the WebAssembly module
+RUN make build
+
+# Start development server
+CMD ["make", "serve"]

@@ -15,7 +15,7 @@ locals {
 
   # Update capitalization to match the tag policy requirements
   tags = var.tags != null ? var.tags : {
-    environment = var.environment  # Using lowercase as required by tag policy
+    Environment = var.environment  # This should use the correct capitalization
     Project     = var.project_name
     ManagedBy   = "terraform"
   }

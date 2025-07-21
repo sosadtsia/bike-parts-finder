@@ -1,0 +1,64 @@
+replicaCount: {{ .Values.scraper.replicas }}
+
+image:
+  repository: {{ .Values.scraper.image.repository }}
+  tag: {{ .Values.scraper.image.tag }}
+  pullPolicy: Always
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  requests:
+    memory: {{ .Values.scraper.resources.requests.memory | quote }}
+    cpu: {{ .Values.scraper.resources.requests.cpu | quote }}
+  limits:
+    memory: {{ .Values.scraper.resources.limits.memory | quote }}
+    cpu: {{ .Values.scraper.resources.limits.cpu | quote }}
+
+env:
+  - name: KAFKA_BROKERS
+    value: "kafka:9092"
+  - name: LOG_LEVEL
+    value: {{ if eq .Values.scraper.debug true }}"debug"{{ else }}"info"{{ end }}
+  - name: DEBUG
+    value: {{ .Values.scraper.debug | quote }}
+
+livenessProbe:
+  exec:
+    command:
+    - /bin/sh
+    - -c
+    - "ps aux | grep scraper | grep -v grep"
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+readinessProbe:
+  exec:
+    command:
+    - /bin/sh
+    - -c
+    - "ps aux | grep scraper | grep -v grep"
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -38,7 +38,7 @@ tasks:
     dir: infra/terraform
     deps: [init]
     cmds:
-      - '{{.TOFU_CLI}} apply -auto-approve -var-file="environments/{{.ENV}}.tfvars" {{.CLI_ARGS}}'
+      - '{{.TOFU_CLI}} apply -var-file="environments/{{.ENV}}.tfvars" {{.CLI_ARGS}}'
 
   destroy:
     desc: Run OpenTofu destroy

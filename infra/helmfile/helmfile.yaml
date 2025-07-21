@@ -1,0 +1,202 @@
+# Main Helmfile for Bike Parts Finder
+
+repositories:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: ingress-nginx
+    url: https://kubernetes.github.io/ingress-nginx
+
+environments:
+  default:
+    values:
+      - environments/default.yaml
+  develop:
+    values:
+      - environments/default.yaml
+      - environments/develop.yaml
+  production:
+    values:
+      - environments/default.yaml
+      - environments/production.yaml
+
+helmDefaults:
+  createNamespace: true
+  timeout: 600
+  wait: true
+
+releases:
+  # Core API Service
+  - name: api
+    namespace: "{{ .Values.namespace }}"
+    chart: ./charts/api
+    values:
+      - values/api.yaml.gotmpl
+    needs:
+      - "{{ .Values.namespace }}/kafka"
+
+  # Scraper Service
+  - name: scraper
+    namespace: "{{ .Values.namespace }}"
+    chart: ./charts/scraper
+    values:
+      - values/scraper.yaml.gotmpl
+    needs:
+      - "{{ .Values.namespace }}/kafka"
+
+  # Consumer Service
+  - name: consumer
+    namespace: "{{ .Values.namespace }}"
+    chart: ./charts/consumer
+    values:
+      - values/consumer.yaml.gotmpl
+    needs:
+      - "{{ .Values.namespace }}/kafka"
+      - "{{ .Values.namespace }}/postgres"
+
+  # PostgreSQL Database
+  - name: postgres
+    namespace: "{{ .Values.namespace }}"
+    chart: bitnami/postgresql
+    version: 12.5.2
+    values:
+      - fullnameOverride: postgres
+        global:
+          postgresql:
+            auth:
+              username: "{{ .Values.postgres.username }}"
+              password: "{{ .Values.postgres.password }}"
+              database: "{{ .Values.postgres.database }}"
+        primary:
+          persistence:
+            enabled: true
+            size: "{{ .Values.postgres.storage }}"
+        resources:
+          requests:
+            memory: "{{ .Values.postgres.resources.requests.memory }}"
+            cpu: "{{ .Values.postgres.resources.requests.cpu }}"
+          limits:
+            memory: "{{ .Values.postgres.resources.limits.memory }}"
+            cpu: "{{ .Values.postgres.resources.limits.cpu }}"
+
+  # Redis Cache
+  - name: redis
+    namespace: "{{ .Values.namespace }}"
+    chart: bitnami/redis
+    version: 18.0.0
+    values:
+      - fullnameOverride: redis
+        auth:
+          enabled: false
+        master:
+          persistence:
+            enabled: true
+            size: "{{ .Values.redis.storage }}"
+        replica:
+          replicaCount: 0
+        resources:
+          requests:
+            memory: "{{ .Values.redis.resources.requests.memory }}"
+            cpu: "{{ .Values.redis.resources.requests.cpu }}"
+          limits:
+            memory: "{{ .Values.redis.resources.limits.memory }}"
+            cpu: "{{ .Values.redis.resources.limits.cpu }}"
+
+  # Kafka Messaging
+  - name: kafka
+    namespace: "{{ .Values.namespace }}"
+    chart: bitnami/kafka
+    version: 22.1.4
+    values:
+      - fullnameOverride: kafka
+        replicaCount: 1
+        autoCreateTopicsEnable: true
+        allowPlaintextListener: true
+        deleteTopicEnable: true
+        persistence:
+          enabled: true
+          size: "{{ .Values.kafka.storage }}"
+        resources:
+          requests:
+            memory: "{{ .Values.kafka.resources.requests.memory }}"
+            cpu: "{{ .Values.kafka.resources.requests.cpu }}"
+          limits:
+            memory: "{{ .Values.kafka.resources.limits.memory }}"
+            cpu: "{{ .Values.kafka.resources.limits.cpu }}"
+        zookeeper:
+          enabled: true
+          persistence:
+            enabled: true
+            size: "1Gi"
+
+  # Ingress Controller
+  - name: ingress-nginx
+    namespace: "{{ .Values.namespace }}"
+    chart: ingress-nginx/ingress-nginx
+    version: 4.8.0
+    values:
+      - controller:
+          replicaCount: 1
+          service:
+            type: LoadBalancer
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+
+  # Monitoring - Prometheus & Grafana
+  - name: kube-prometheus-stack
+    namespace: "{{ .Values.namespace }}"
+    chart: prometheus-community/kube-prometheus-stack
+    version: 45.27.0
+    values:
+      - defaultRules:
+          create: true
+        prometheus:
+          enabled: true
+          service:
+            type: ClusterIP
+          prometheusSpec:
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: "10Gi"
+        alertmanager:
+          enabled: {{ .Values.monitoring.alertmanager.enabled }}
+          service:
+            type: ClusterIP
+        grafana:
+          enabled: true
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            hosts:
+              - "grafana.{{ .Values.domain }}"
+          additionalDataSources:
+            - name: Prometheus
+              type: prometheus
+              url: http://prometheus:9090
+              access: proxy
+              isDefault: true
+          dashboardProviders:
+            dashboardproviders.yaml:
+              apiVersion: 1
+              providers:
+              - name: 'default'
+                orgId: 1
+                folder: ''
+                type: file
+                disableDeletion: false
+                editable: true
+                options:
+                  path: /var/lib/grafana/dashboards/default
