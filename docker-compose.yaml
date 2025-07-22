@@ -89,7 +89,7 @@ services:
       - bikepartsnet
 
   kafka:
-    image: confluentinc/cp-kafka:7.4.3
+    image: confluentinc/cp-kafka:7.9.2
     ports:
       - "9092:9092"
       - "29092:29092"
