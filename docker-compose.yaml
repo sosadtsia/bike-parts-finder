@@ -106,7 +106,7 @@ services:
       - bikepartsnet
 
   kafdrop:
-    image: obsidiandynamics/kafdrop:3.31.0
+    image: obsidiandynamics/kafdrop:4.1.0
     ports:
       - "9000:9000"
     environment:
