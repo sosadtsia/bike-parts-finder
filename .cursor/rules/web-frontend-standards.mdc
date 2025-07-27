@@ -1,0 +1,104 @@
+---
+description: Web Frontend Standards
+globs: web/frontend/**
+alwaysApply: true
+---
+
+# Go WebAssembly Frontend Standards
+
+## Overview
+
+This project uses Go WebAssembly for frontend development rather than traditional JavaScript frameworks. Go code is compiled to WebAssembly and runs in the browser, manipulating the DOM directly via JavaScript bindings.
+
+## Project Structure
+
+- `web/frontend/main.go`: Main entry point for WebAssembly application
+- `web/frontend/index.html`: HTML template that loads the WebAssembly module
+- `web/frontend/styles.css`: CSS styles for the application
+- `web/frontend/wasm_exec.js`: JavaScript glue code provided by Go (copied from Go installation)
+
+## Build Process
+
+To build the WebAssembly module:
+
+```bash
+cd web/frontend
+GOOS=js GOARCH=wasm go build -o main.wasm
+cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" .
+```
+
+The Makefile in `web/frontend/` handles this process.
+
+## DOM Manipulation
+
+Use the `syscall/js` package to interact with the DOM:
+
+```go
+// Get elements
+document := js.Global().Get("document")
+element := document.Call("getElementById", "element-id")
+
+// Set content
+element.Set("innerHTML", "New content")
+
+// Add event listeners
+element.Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+    // Handle event
+    return nil
+}))
+```
+
+## API Communication
+
+Use the `fetch` API via JavaScript bindings:
+
+```go
+promise := js.Global().Call("fetch", url)
+promise.Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+    // Handle response
+    return nil
+}))
+```
+
+Always implement proper error handling for API calls, checking both network errors and application errors in the response.
+
+## State Management
+
+Since there's no built-in state management:
+
+1. Use global variables for application state
+2. Create functions to update the state and re-render affected components
+3. Use channels for asynchronous operations
+
+## Best Practices
+
+1. **Memory Management**: Always use `js.FuncOf()` for callbacks and explicitly release them when no longer needed to prevent memory leaks.
+
+2. **Error Handling**: Implement comprehensive error handling for all JavaScript interop.
+
+3. **Progressive Enhancement**: Ensure the application works (at least minimally) without WebAssembly loaded.
+
+4. **Type Safety**: Leverage Go's type system by creating proper struct types for API responses.
+
+5. **Code Organization**: Separate logic into different files by feature/concern:
+   - DOM manipulation functions
+   - API communication
+   - Data processing
+   - Event handlers
+
+6. **Performance**: Be mindful of WebAssembly performance characteristics:
+   - Minimize string conversions between Go and JavaScript
+   - Batch DOM operations
+   - Use `requestAnimationFrame` for animations
+
+7. **Debugging**: Use `fmt.Println()` for debug output which appears in the browser console.
+
+8. **Loading State**: Always show loading indicators during asynchronous operations.
+
+## References
+
+- [Go WebAssembly Wiki](https://github.com/golang/go/wiki/WebAssembly)
+- [syscall/js Documentation](https://pkg.go.dev/syscall/js)
+
+- [Go WebAssembly Wiki](https://github.com/golang/go/wiki/WebAssembly)
+- [syscall/js Documentation](https://pkg.go.dev/syscall/js)

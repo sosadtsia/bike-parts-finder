@@ -11,7 +11,7 @@ This application helps cyclists find compatible parts for their bicycles by sear
 ```
 User
 |
-React Frontend <--> Go API Backend
+Go WebAssembly Frontend <--> Go API Backend
 |
 +-----------+------------+
 |            |
@@ -31,7 +31,7 @@ External websites (e.g., JensonUSA)
 
 ## Components
 
-- **Frontend**: React application for searching and viewing bike parts
+- **Frontend**: Go WebAssembly for searching and viewing bike parts
 - **Backend API**: Go service handling API logic and database/cache access
 - **Scraper**: Go service that scrapes websites for bike parts data
 - **Database**: PostgreSQL for storing structured parts data

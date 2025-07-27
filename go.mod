@@ -1,6 +1,6 @@
 module github.com/sosadtsia/bike-parts-finder
 
-go 1.24
+go 1.22
 
 require (
 	github.com/gocolly/colly/v2 v2.1.0

@@ -23,10 +23,17 @@ type Part struct {
 	URL         string   `json:"url"`
 }
 
+// ErrorResponse represents an API error response
+type ErrorResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+	Code    int    `json:"code"`
+}
+
 // Global variables
 var (
 	// API base URL
-	apiBaseURL = "http://localhost:8080/api"
+	apiBaseURL = "http://localhost:8080/api/v1"
 
 	// DOM elements
 	searchButton     js.Value
@@ -103,38 +110,61 @@ func fetchParts(query, category string) {
 	}
 
 	// Create fetch promise
-	fetch := js.Global().Get("fetch")
-	fetchPromise := fetch.Invoke(url)
+	promise := js.Global().Call("fetch", url)
 
 	// Handle response
-	then := fetchPromise.Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	promise.Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		response := args[0]
-		return response.Call("json")
-	}))
 
-	// Handle JSON
-	then.Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		// Parse JSON
-		data := args[0]
-
-		// Convert to Go slice
-		var parts []Part
-		dataStr := js.Global().Get("JSON").Call("stringify", data).String()
-		if err := json.Unmarshal([]byte(dataStr), &parts); err != nil {
-			showError("Failed to parse parts data: " + err.Error())
+		// Check if response is ok
+		if !response.Get("ok").Bool() {
+			// Handle HTTP error
+			errorMsg := fmt.Sprintf("Error: %s (%d)", response.Get("statusText").String(), response.Get("status").Int())
+			showError(errorMsg)
 			return nil
 		}
 
-		// Display parts
-		displayParts(parts)
+		// Parse response as JSON
+		jsonPromise := response.Call("json")
+		jsonPromise.Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			// Handle parsed JSON
+			result := args[0]
+
+			// Check for API error response
+			if !result.Get("error").IsUndefined() {
+				errorMsg := result.Get("message").String()
+				showError(errorMsg)
+				return nil
+			}
+
+			// Convert JS array to Go slice
+			length := result.Length()
+			parts := make([]Part, length)
+			for i := 0; i < length; i++ {
+				item := result.Index(i)
+				partJSON := js.Global().Get("JSON").Call("stringify", item).String()
+				var part Part
+				json.Unmarshal([]byte(partJSON), &part)
+				parts[i] = part
+			}
+
+			// Display parts
+			displayParts(parts)
+			return nil
+		})).Call("catch", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			// Handle JSON parsing error
+			err := args[0]
+			errorMsg := fmt.Sprintf("Error parsing response: %s", err.Get("message").String())
+			showError(errorMsg)
+			return nil
+		}))
 
 		return nil
-	}))
-
-	// Handle error
-	then.Call("catch", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	})).Call("catch", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Handle network error
 		err := args[0]
-		showError("Failed to fetch parts: " + err.Get("message").String())
+		errorMsg := fmt.Sprintf("Network error: %s", err.Get("message").String())
+		showError(errorMsg)
 		return nil
 	}))
 }
@@ -279,38 +309,55 @@ func showPartDetails(partID string) {
 	url := fmt.Sprintf("%s/parts/%s", apiBaseURL, partID)
 
 	// Create fetch promise
-	fetch := js.Global().Get("fetch")
-	fetchPromise := fetch.Invoke(url)
+	promise := js.Global().Call("fetch", url)
 
 	// Handle response
-	then := fetchPromise.Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	promise.Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		response := args[0]
-		return response.Call("json")
-	}))
 
-	// Handle JSON
-	then.Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		// Parse JSON
-		data := args[0]
-
-		// Convert to Go struct
-		var part Part
-		dataStr := js.Global().Get("JSON").Call("stringify", data).String()
-		if err := json.Unmarshal([]byte(dataStr), &part); err != nil {
-			showError("Failed to parse part data: " + err.Error())
+		// Check if response is ok
+		if !response.Get("ok").Bool() {
+			// Handle HTTP error
+			errorMsg := fmt.Sprintf("Error: %s (%d)", response.Get("statusText").String(), response.Get("status").Int())
+			showError(errorMsg)
 			return nil
 		}
 
-		// Display part details
-		displayPartDetails(part)
+		// Parse response as JSON
+		jsonPromise := response.Call("json")
+		jsonPromise.Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			// Handle parsed JSON
+			result := args[0]
+
+			// Check for API error response
+			if !result.Get("error").IsUndefined() {
+				errorMsg := result.Get("message").String()
+				showError(errorMsg)
+				return nil
+			}
+
+			// Convert JS object to Go struct
+			partJSON := js.Global().Get("JSON").Call("stringify", result).String()
+			var part Part
+			json.Unmarshal([]byte(partJSON), &part)
+
+			// Display part details
+			displayPartDetails(part)
+			return nil
+		})).Call("catch", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			// Handle JSON parsing error
+			err := args[0]
+			errorMsg := fmt.Sprintf("Error parsing response: %s", err.Get("message").String())
+			showError(errorMsg)
+			return nil
+		}))
 
 		return nil
-	}))
-
-	// Handle error
-	then.Call("catch", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	})).Call("catch", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Handle network error
 		err := args[0]
-		showError("Failed to fetch part details: " + err.Get("message").String())
+		errorMsg := fmt.Sprintf("Network error: %s", err.Get("message").String())
+		showError(errorMsg)
 		return nil
 	}))
 }
