@@ -11,7 +11,7 @@ This application helps cyclists find compatible parts for their bicycles by sear
 ```
 User
 |
-Go WebAssembly Frontend <--> Go API Backend
+React.js Frontend <--> Go API Backend
 |
 +-----------+------------+
 |            |

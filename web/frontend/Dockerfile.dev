@@ -1,18 +1,16 @@
-FROM golang:1.24-alpine
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Install build tools
-RUN apk add --no-cache make bash
+# Copy only package files first to leverage Docker cache
+COPY package.json package-lock.json* ./
 
-# Copy files
+# Install dependencies with cache
+RUN npm ci --silent
+
+# Copy the rest of the app
 COPY . .
 
-# Install dependencies
-RUN go mod download
-
-# Build the WebAssembly module
-RUN make build
-
 # Start development server
-CMD ["make", "serve"]
+EXPOSE 3000
+CMD ["npm", "start"]

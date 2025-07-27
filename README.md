@@ -11,7 +11,7 @@ Bike Parts Finder helps cyclists find compatible parts for their bicycles by sea
 ```
 User
 |
-Go WebAssembly Frontend <--> Go API Backend
+React.js Frontend <--> Go API Backend
 |
 +-----------+------------+
 |            |

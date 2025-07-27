@@ -1,7 +1,7 @@
 ---
 description: Web Frontend Standards
 globs: web/frontend/**
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Go WebAssembly Frontend Standards
