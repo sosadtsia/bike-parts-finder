@@ -1,5 +1,4 @@
-version: '3.8'
-
+---
 services:
   api:
     build:
@@ -79,7 +78,7 @@ services:
       retries: 5
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.3
+    image: confluentinc/cp-zookeeper:7.9.2
     ports:
       - "2181:2181"
     environment:
@@ -89,7 +88,7 @@ services:
       - bikepartsnet
 
   kafka:
-    image: confluentinc/cp-kafka:7.4.3
+    image: confluentinc/cp-kafka:7.9.2
     ports:
       - "9092:9092"
       - "29092:29092"

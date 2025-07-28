@@ -8,25 +8,15 @@ vars:
 
 includes:
   kind:
-    taskfile: ./Taskfile.kind.yml
-    dir: .
-    optional: true
+    taskfile: ./taskfiles/Taskfile.kind.yml
   eks:
-    taskfile: ./Taskfile.eks.yaml
-    dir: .
-    optional: true
+    taskfile: ./taskfiles/Taskfile.eks.yaml
   docker:
-    taskfile: ./Taskfile.docker.yml
-    dir: .
-    optional: true
+    taskfile: ./taskfiles/Taskfile.docker.yml
   helmfile:
-    taskfile: ./Taskfile.helmfile.yml
-    dir: .
-    optional: true
+    taskfile: ./taskfiles/Taskfile.helmfile.yml
   argocd:
-    taskfile: ./Taskfile.argocd.yml
-    dir: .
-    optional: true
+    taskfile: ./taskfiles/Taskfile.argocd.yml
 
 tasks:
   check:deps:
