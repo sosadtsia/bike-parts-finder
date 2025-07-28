@@ -1,0 +1,165 @@
+---
+description: React.js Development Standards
+globs: web/frontend/**
+alwaysApply: true
+---
+
+# React.js Development Standards
+
+## Component Structure
+
+### Functional Components
+
+Use functional components with hooks as the default pattern:
+
+```jsx
+import React, { useState, useEffect } from 'react';
+
+const MyComponent = ({ prop1, prop2 }) => {
+  const [state, setState] = useState(initialState);
+
+  useEffect(() => {
+    // Side effects here
+    return () => {
+      // Cleanup function
+    };
+  }, [dependencies]);
+
+  return (
+    <div>
+      {/* JSX content */}
+    </div>
+  );
+};
+
+export default MyComponent;
+```
+
+### Component Organization
+
+1. **File Structure**:
+   - One component per file
+   - Name files using PascalCase matching the component name
+   - Group related components in feature directories
+
+2. **Component Hierarchy**:
+   - `pages/` - Full page components
+   - `components/` - Reusable UI components
+   - `layouts/` - Layout wrapper components
+   - `hooks/` - Custom React hooks
+   - `contexts/` - React context providers
+
+## State Management
+
+### Local State
+
+Use `useState` for component-specific state:
+
+```jsx
+const [count, setCount] = useState(0);
+```
+
+### Context API
+
+Use Context API for state that needs to be shared across multiple components:
+
+```jsx
+// Create context
+const MyContext = React.createContext();
+
+// Provider component
+const MyProvider = ({ children }) => {
+  const [state, setState] = useState(initialState);
+
+  return (
+    <MyContext.Provider value={{ state, setState }}>
+      {children}
+    </MyContext.Provider>
+  );
+};
+
+// Consumer component
+const MyConsumer = () => {
+  const { state, setState } = useContext(MyContext);
+  // Use state and setState
+};
+```
+
+### External State Management
+
+For complex applications, consider using Redux or Zustand.
+
+## Performance Optimization
+
+1. **Memoization**:
+   - Use `React.memo()` for components that render often with the same props
+   - Use `useMemo()` for expensive calculations
+   - Use `useCallback()` for functions passed as props to child components
+
+2. **Code Splitting**:
+   - Use dynamic imports for route-based code splitting
+   ```jsx
+   const MyComponent = React.lazy(() => import('./MyComponent'));
+   ```
+
+3. **Virtualization**:
+   - Use virtualization libraries (e.g., `react-window`) for long lists
+
+## Styling
+
+1. **CSS-in-JS**: Prefer styled-components or emotion for component styling
+2. **CSS Modules**: Use CSS Modules for component-scoped CSS
+3. **Utility Classes**: Use utility-first CSS frameworks (e.g., Tailwind CSS) when appropriate
+
+## Testing
+
+1. **Component Testing**:
+   - Use React Testing Library for component tests
+   - Test component behavior, not implementation details
+
+2. **Test Structure**:
+   - Arrange - Set up component with props
+   - Act - Interact with component
+   - Assert - Check expected outcomes
+
+## Accessibility
+
+1. Always include proper semantic HTML elements
+2. Use ARIA attributes when necessary
+3. Ensure keyboard navigation works for all interactive elements
+4. Maintain sufficient color contrast
+5. Provide text alternatives for non-text content
+
+## Best Practices
+
+1. **Props**:
+   - Use prop destructuring
+   - Define PropTypes or TypeScript interfaces for all components
+   - Provide default props when applicable
+
+2. **Conditional Rendering**:
+   - Use ternary operators for simple conditions
+   - Use logical && for simple "if" statements
+   - Extract complex conditions to variables or functions
+
+3. **Event Handling**:
+   - Use arrow functions for event handlers
+   - Debounce event handlers for performance-intensive operations
+
+4. **Forms**:
+   - Use controlled components for form elements
+   - Consider form libraries (Formik, React Hook Form) for complex forms
+
+5. **Error Boundaries**:
+   - Implement error boundaries to catch and handle component errors
+
+## Project Configuration
+
+1. Use ESLint with React plugin for code quality
+2. Use Prettier for consistent code formatting
+3. Configure Husky for pre-commit hooks to enforce standards
+
+
+1. Use ESLint with React plugin for code quality
+2. Use Prettier for consistent code formatting
+3. Configure Husky for pre-commit hooks to enforce standards
