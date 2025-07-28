@@ -7,7 +7,6 @@ function HomePage() {
   const [parts, setParts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchParams, setSearchParams] = useState({ query: '', category: '' });
 
   useEffect(() => {
     // Load initial results
@@ -29,7 +28,6 @@ function HomePage() {
   };
 
   const handleSearch = (query, category) => {
-    setSearchParams({ query, category });
     fetchParts(query, category);
   };
 
