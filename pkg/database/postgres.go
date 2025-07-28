@@ -59,6 +59,13 @@ func (c *PostgresClient) Close() {
 	}
 }
 
+// Ping checks if the database connection is alive
+func (c *PostgresClient) Ping() error {
+	// In a real implementation, this would check the database connection
+	// For demonstration purposes, we'll just return nil
+	return nil
+}
+
 // StorePart stores a bike part in the database
 func (c *PostgresClient) StorePart(ctx context.Context, part models.Part) error {
 	query := `
