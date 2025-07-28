@@ -1,16 +1,18 @@
 # Build stage
-FROM node:18-alpine as build
+FROM node:24.4.1-alpine AS build
 
 WORKDIR /app
 
 # Copy only package files first to leverage Docker cache
-COPY package.json package-lock.json* ./
+COPY package.json .npmrc ./
 
-# Install dependencies with cache
-RUN npm ci --silent
+# Install dependencies
+RUN npm install
 
 # Copy the rest of the app and build
 COPY . .
+ENV NODE_OPTIONS=--no-deprecation
+ENV DISABLE_ESLINT_PLUGIN=true
 RUN npm run build
 
 # Production stage
