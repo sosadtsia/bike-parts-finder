@@ -1,0 +1,33 @@
+---
+description: Project Structure
+globs: .
+alwaysApply: true
+---
+
+# Bike Parts Finder - Project Structure
+
+This is a cloud-native application for finding bicycle parts by brand, model, and year, using web scraping to gather real-time parts data.
+
+## Project Components
+
+### API and Services
+- API service entry point: [cmd/api/main.go](mdc:cmd/api/main.go)
+- Scraper service: [cmd/scraper/main.go](mdc:cmd/scraper/main.go)
+- Kafka Consumer service: [cmd/consumer/main.go](mdc:cmd/consumer/main.go)
+
+### Architecture
+The application follows a microservices architecture:
+- Go WebAssembly Frontend communicates with Go API Backend
+- PostgreSQL database for persistent storage
+- Redis for caching
+- Kafka for message queuing between services
+
+### Frontend
+Web UI is built with Go WebAssembly and is located in [web/frontend](mdc:web/frontend)
+
+### Infrastructure
+- Local development with Kind: [Taskfile.kind.yml](mdc:Taskfile.kind.yml)
+- EKS deployment: [Taskfile.eks.yaml](mdc:Taskfile.eks.yaml)
+- Kubernetes resources managed with Helmfile: [Taskfile.helmfile.yml](mdc:Taskfile.helmfile.yml)
+- Docker containerization: [docker-compose.yaml](mdc:docker-compose.yaml)
+- ArgoCD for GitOps: [Taskfile.argocd.yml](mdc:Taskfile.argocd.yml)

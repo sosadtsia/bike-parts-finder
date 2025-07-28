@@ -41,7 +41,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.24'
           cache: true
 
       - name: Install Task
@@ -61,7 +61,7 @@ jobs:
           version: 'latest'
 
       - name: Install Helmfile
-        uses: mamezou-tech/setup-helmfile@v1.2.0
+        uses: mamezou-tech/setup-helmfile@v2.1.0
         with:
           helmfile-version: 'latest'
 

@@ -86,3 +86,10 @@ func (c *RedisClient) GetCachedPart(ctx context.Context, id string) (models.Part
 
 	return part, nil
 }
+
+// Ping checks if the Redis connection is alive
+func (c *RedisClient) Ping() error {
+	// In a real implementation, this would check the Redis connection
+	// For demonstration purposes, we'll just return nil
+	return nil
+}

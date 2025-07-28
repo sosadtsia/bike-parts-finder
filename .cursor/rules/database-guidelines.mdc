@@ -1,0 +1,42 @@
+---
+description: Database Guidelines
+globs: pkg/database/**
+alwaysApply: true
+---
+
+# Database Guidelines
+
+## Connection Management
+- Use connection pooling
+- Handle connection errors gracefully
+- Close resources properly
+- Use pgx for PostgreSQL access
+
+## Query Design
+- Use prepared statements to prevent SQL injection
+- Optimize queries for performance
+- Use transactions where appropriate
+- Keep queries simple and focused
+
+## Data Access Patterns
+- Use repository pattern to abstract database access
+- Implement proper error handling
+- Use context for cancellation and timeouts
+- Consider using an ORM like GORM or use raw SQL based on needs
+
+## Schema Design
+- Use appropriate data types
+- Apply proper indexing
+- Follow normalization principles
+- Use migrations for schema changes
+- Document table schemas
+
+## Performance
+- Monitor query performance
+- Use explain plans to analyze slow queries
+- Consider caching for frequently accessed data
+- Implement pagination for large result sets
+description:
+globs:
+alwaysApply: false
+---
