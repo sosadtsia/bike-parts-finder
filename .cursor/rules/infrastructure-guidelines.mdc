@@ -1,0 +1,32 @@
+---
+description: Infrastructure & DevOps Guidelines
+---
+
+# Infrastructure Guidelines
+
+## Kubernetes & Helmfile
+- Use Helmfile for Helm chart management
+- Follow GitOps principles with ArgoCD
+- Use namespace isolation
+- Apply proper resource requests and limits
+- Follow the principle of least privilege
+- Use Kubernetes secrets for sensitive information
+
+## Terraform/OpenTofu
+- Use modules for reusability
+- Follow infrastructure as code best practices
+- Use remote state with proper locking
+- Use variables and outputs appropriately
+- Apply proper tagging for resources
+
+## Docker
+- Use multi-stage builds for smaller images
+- Use specific version tags for base images
+- Follow security best practices
+- Optimize for caching during builds
+
+## CI/CD
+- Use GitHub Actions for CI/CD pipelines
+- Automate testing, building, and deployment
+- Follow the principle of continuous integration
+- Use ArgoCD for GitOps-based deployments
