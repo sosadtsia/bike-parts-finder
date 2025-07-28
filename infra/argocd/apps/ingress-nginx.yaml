@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-nginx
+  namespace: argocd
+spec:
+  project: default
+  source:
+    path: infra/helmfile
+    repoURL: https://github.com/yourusername/bike-parts-finder.git
+    targetRevision: HEAD
+    plugin:
+      name: helmfile
+      env:
+        - name: HELMFILE_RELEASE
+          value: ingress-nginx
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: bike-parts-finder
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
