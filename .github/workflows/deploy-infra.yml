@@ -61,7 +61,7 @@ jobs:
           version: 'latest'
 
       - name: Install Helmfile
-        uses: mamezou-tech/setup-helmfile@v1.3.0
+        uses: mamezou-tech/setup-helmfile@v2.1.0
         with:
           helmfile-version: 'latest'
 
