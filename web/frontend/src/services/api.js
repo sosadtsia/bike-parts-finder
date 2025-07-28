@@ -59,7 +59,9 @@ const handleError = (error) => {
   }
 };
 
-export default {
+const apiService = {
   searchParts,
   getPartById,
 };
+
+export default apiService;
