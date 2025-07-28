@@ -11,7 +11,7 @@ Bike Parts Finder helps cyclists find compatible parts for their bicycles by sea
 ```
 User
 |
-React Frontend <--> Go API Backend
+React.js Frontend <--> Go API Backend
 |
 +-----------+------------+
 |            |
@@ -31,7 +31,7 @@ External websites (e.g., JensonUSA)
 
 ## Technology Stack
 
-- **Frontend**: React.js (built and managed with Node.js tooling)
+- **Frontend**: Go WebAssembly with TailwindCSS
 - **Backend API**: Go
 - **Database**: PostgreSQL on EKS
 - **Cache**: Redis on EKS
@@ -47,8 +47,7 @@ External websites (e.g., JensonUSA)
 
 ### Prerequisites
 
-- [Go](https://golang.org/) (1.21+) - For backend services
-- [Node.js](https://nodejs.org/) (18+) - For React frontend development
+- [Go](https://golang.org/) (1.22+) - For backend services and WebAssembly frontend
 - [Docker](https://www.docker.com/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [helm](https://helm.sh/) - Required by Helmfile
@@ -85,9 +84,14 @@ External websites (e.g., JensonUSA)
 
    # Frontend (in another terminal)
    cd web/frontend
-   npm install
-   npm start
+   go run -tags js,wasm main.go  # Compile WebAssembly
+
+   # Alternatively, you can use the Makefile
+   cd web/frontend
+   make build
    ```
+
+5. Access the application at http://localhost:8080
 
 ## Project Structure
 
@@ -98,6 +102,9 @@ External websites (e.g., JensonUSA)
 │   ├── api/           # Backend API service
 │   ├── scraper/       # Web scraper service
 │   └── consumer/      # Kafka consumer service
+├── docs/              # Documentation
+│   ├── api.md         # API documentation
+│   └── development.md # Development guide
 ├── pkg/               # Shared Go packages
 │   ├── models/        # Data models
 │   ├── database/      # Database access
@@ -105,7 +112,7 @@ External websites (e.g., JensonUSA)
 │   ├── kafka/         # Kafka utilities
 │   └── scraping/      # Web scraping logic
 ├── web/               # Frontend application
-│   └── frontend/      # React application (uses Node.js toolchain)
+│   └── frontend/      # Go WebAssembly application
 ├── infra/             # Infrastructure as code
 │   ├── terraform/     # OpenTofu configuration
 │   ├── helmfile/      # Helmfile configuration for Kubernetes resources
@@ -113,6 +120,23 @@ External websites (e.g., JensonUSA)
 │   └── argocd/        # ArgoCD configuration
 └── Taskfile.yml       # Task definitions
 ```
+
+## API Documentation
+
+The API includes versioning to ensure backward compatibility. All endpoints are available under:
+
+```
+/api/v1/...
+```
+
+Health check endpoints are also available:
+
+```
+/health      # Basic health check
+/health/ready # Readiness check (verifies database and cache connections)
+```
+
+See [API Documentation](./docs/api.md) for details on all available endpoints.
 
 ## Infrastructure
 
