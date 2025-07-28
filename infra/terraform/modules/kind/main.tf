@@ -62,7 +62,7 @@ resource "null_resource" "deploy_ingress_nginx" {
 # Setup local registry
 resource "docker_container" "registry" {
   name  = var.registry_name
-  image = "registry:2"
+  image = "registry:3"
 
   restart = "always"
 
