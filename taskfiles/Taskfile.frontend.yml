@@ -1,0 +1,27 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task -l
+    silent: true
+
+  devdeploy:
+    desc: Rebuild and restart the frontend development container
+    dir: web/frontend
+    cmds:
+      - docker-compose down
+      - docker-compose up --build -d
+
+  devdeploy-logs:
+    desc: Rebuild and restart the frontend development container with logs
+    dir: web/frontend
+    cmds:
+      - docker-compose down
+      - docker-compose up --build
+
+  stop:
+    desc: Stop the frontend development container
+    dir: web/frontend
+    cmds:
+      - docker-compose down

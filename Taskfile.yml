@@ -17,6 +17,8 @@ includes:
     taskfile: ./taskfiles/Taskfile.helmfile.yml
   argocd:
     taskfile: ./taskfiles/Taskfile.argocd.yml
+  frontend:
+    taskfile: ./taskfiles/Taskfile.frontend.yml
 
 tasks:
   check:deps:

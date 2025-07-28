@@ -33,6 +33,7 @@ node_modules/
 jspm_packages/
 
 # IDEs and editors
+.cursor/
 .idea/
 .vscode/
 *.swp
