@@ -1,30 +1,22 @@
 package models
 
-import (
-	"time"
-)
+import "time"
 
-// Part represents a bike part with all its attributes
+// Part represents a bicycle part
 type Part struct {
-	ID          string    `json:"id"`
-	Brand       string    `json:"brand"`
-	Model       string    `json:"model"`
-	Category    string    `json:"category"`
-	SubCategory string    `json:"sub_category"`
-	Price       float64   `json:"price"`
-	MSRP        float64   `json:"msrp,omitempty"`
-	Discount    float64   `json:"discount,omitempty"`
-	Currency    string    `json:"currency"`
-	InStock     bool      `json:"in_stock"`
-	Rating      float64   `json:"rating,omitempty"`
-	NumReviews  int       `json:"num_reviews,omitempty"`
-	Description string    `json:"description"`
-	Specs       []Spec    `json:"specs,omitempty"`
-	Images      []string  `json:"images,omitempty"`
-	URL         string    `json:"url"`
-	Source      string    `json:"source"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string   `json:"id"`
+	Brand       string   `json:"brand"`
+	Model       string   `json:"model"`
+	Category    string   `json:"category"`
+	SubCategory string   `json:"sub_category"`
+	Price       float64  `json:"price"`
+	MSRP        float64  `json:"msrp,omitempty"`
+	Discount    float64  `json:"discount,omitempty"`
+	Currency    string   `json:"currency"`
+	InStock     bool     `json:"in_stock"`
+	Description string   `json:"description"`
+	Images      []string `json:"images,omitempty"`
+	URL         string   `json:"url"`
 }
 
 // Spec represents a specification of a part

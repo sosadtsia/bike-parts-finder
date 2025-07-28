@@ -1,0 +1,164 @@
+---
+description: Go Standard Libraries Best Practices
+globs:
+alwaysApply: true
+---
+
+# Go Standard Libraries Best Practices
+
+## Overview
+
+This project follows the "Go Proverbs" philosophy: prefer standard libraries when possible and only reach for third-party packages when necessary. The Go standard library is comprehensive, well-tested, and optimized.
+
+## Standard Library First
+
+Before adding a new dependency, check if the Go standard library already provides the functionality:
+
+| Need | Standard Library Solution | Common Third-Party Alternative |
+|------|---------------------------|--------------------------------|
+| HTTP Client/Server | `net/http` | `fasthttp`, `gin`, `echo` |
+| JSON Processing | `encoding/json` | `jsoniter`, `easyjson` |
+| Command-line Parsing | `flag` | `cobra`, `urfave/cli` |
+| Testing | `testing` | `testify` |
+| HTTP Routing | `net/http` + `http.ServeMux` | `gorilla/mux`, `chi` |
+| Logging | `log` | `zap`, `logrus` |
+| SQL | `database/sql` | `sqlx`, `gorm` |
+| HTML Templates | `html/template` | `pongo2` |
+| Time Handling | `time` | `carbon` |
+| File Operations | `os`, `io/ioutil` | |
+| Context Management | `context` | |
+
+## Recommended Standard Packages
+
+### HTTP Services
+
+Use the standard `net/http` package for HTTP services:
+
+```go
+func handler(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(w, "Hello, %s!", r.URL.Path[1:])
+}
+
+func main() {
+    http.HandleFunc("/", handler)
+    http.ListenAndServe(":8080", nil)
+}
+```
+
+For more complex routing needs, consider structured patterns with `http.ServeMux` before adding a dependency.
+
+### JSON Processing
+
+Use `encoding/json` for most JSON needs:
+
+```go
+type User struct {
+    ID   int    `json:"id"`
+    Name string `json:"name"`
+}
+
+// Marshaling
+user := User{ID: 1, Name: "John"}
+data, err := json.Marshal(user)
+
+// Unmarshaling
+var newUser User
+err = json.Unmarshal(data, &newUser)
+```
+
+### Error Handling
+
+Use the standard error patterns:
+
+```go
+// Creating errors
+err := errors.New("something went wrong")
+err = fmt.Errorf("failed to process: %w", err) // Wrapping errors (Go 1.13+)
+
+// Error checking
+if err != nil {
+    return fmt.Errorf("operation failed: %w", err)
+}
+
+// Error unwrapping (Go 1.13+)
+if errors.Is(err, os.ErrNotExist) {
+    // Handle specific error
+}
+```
+
+### Context Management
+
+Use `context` package for managing request context, cancellation, and timeouts:
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+
+// Use ctx in HTTP requests, database operations, etc.
+req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+```
+
+### File Operations
+
+Use `os` and `io` packages for file operations:
+
+```go
+// Reading a file
+data, err := os.ReadFile("filename.txt")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Writing a file
+err = os.WriteFile("filename.txt", data, 0644)
+if err != nil {
+    log.Fatal(err)
+}
+
+// More complex operations
+file, err := os.Open("filename.txt")
+if err != nil {
+    log.Fatal(err)
+}
+defer file.Close()
+
+// Use bufio for efficient I/O
+scanner := bufio.NewScanner(file)
+for scanner.Scan() {
+    fmt.Println(scanner.Text())
+}
+```
+
+## When to Use External Libraries
+
+Consider external libraries only when:
+
+1. The functionality is complex and not available in the standard library
+2. The standard library solution would require significant custom code
+3. Performance is critical and benchmarks show significant improvements
+4. Community consensus strongly favors a particular library
+
+## Documentation
+
+Always refer to the official Go documentation when working with standard libraries:
+- [Go Standard Library Documentation](https://pkg.go.dev/std)
+- [Effective Go](https://golang.org/doc/effective_go)
+
+## Package Organization
+
+Organize imports with standard library packages first:
+
+```go
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "time"
+
+    "github.com/external/package"
+)
+```
+
+)
+```
