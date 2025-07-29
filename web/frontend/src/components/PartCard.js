@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 function PartCard({ part }) {
   // Get main image or placeholder
@@ -36,7 +36,7 @@ function PartCard({ part }) {
           ) : (
             <span className="inline-block bg-red-100 text-red-800 px-2 py-1 rounded text-xs">Out of Stock</span>
           )}
-          <Link to={`/parts/${part.id}`} className="text-blue-600 hover:text-blue-800 text-sm">View Details</Link>
+          <Link href={`/parts/${part.id}`} className="text-blue-600 hover:text-blue-800 text-sm">View Details</Link>
         </div>
       </div>
     </div>

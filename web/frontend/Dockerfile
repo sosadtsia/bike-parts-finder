@@ -12,20 +12,23 @@ RUN npm install
 # Copy the rest of the app and build
 COPY . .
 ENV NODE_OPTIONS=--no-deprecation
-ENV DISABLE_ESLINT_PLUGIN=true
 RUN npm run build
 
 # Production stage
-FROM nginx:alpine
+FROM node:24.4.1-alpine AS runner
+WORKDIR /app
 
-# Copy built assets from the build stage
-COPY --from=build /app/build /usr/share/nginx/html
+ENV NODE_ENV production
 
-# Add nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy necessary files from build stage
+COPY --from=build /app/next.config.js ./
+COPY --from=build /app/public ./public
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
 
 # Expose port
-EXPOSE 80
+EXPOSE 3000
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start the app
+CMD ["node", "server.js"]

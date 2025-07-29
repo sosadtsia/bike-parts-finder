@@ -14,5 +14,4 @@ COPY . .
 # Start development server
 EXPOSE 3000
 ENV NODE_OPTIONS=--no-deprecation
-ENV DISABLE_ESLINT_PLUGIN=true
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]
