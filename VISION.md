@@ -11,7 +11,7 @@ This application helps cyclists find compatible parts for their bicycles by sear
 ```
 User
 |
-React.js Frontend <--> Go API Backend
+React.js Frontend <--> Go API Backend (mTLS)
 |
 +-----------+------------+
 |            |
@@ -26,13 +26,14 @@ Kafka on EKS
 |
 Scraper (Go) <--- Kafka Topic: scrape_requests
 |
-External websites (e.g., JensonUSA)
+External websitesß
 ```
 
 ## Components
 
 - **Frontend**: Go WebAssembly for searching and viewing bike parts
 - **Backend API**: Go service handling API logic and database/cache access
+- **Security**: mTLS for secure client-server communication with certificate management
 - **Scraper**: Go service that scrapes websites for bike parts data
 - **Database**: PostgreSQL for storing structured parts data
 - **Cache**: Redis for caching frequent queries
@@ -43,6 +44,7 @@ External websites (e.g., JensonUSA)
 - Hosted on Amazon EKS
 - Infrastructure provisioned with OpenTofu
 - Deployed via GitOps using ArgoCD
+- Certificate management using cert-manager for mTLS
 - Monitoring with Prometheus and Grafana
 - Backups and disaster recovery with Velero
 
