@@ -11,7 +11,7 @@ Bike Parts Finder helps cyclists find compatible parts for their bicycles by sea
 ```
 User
 |
-React.js Frontend <--> Go API Backend
+React.js Frontend <--> Go API Backend (mTLS)
 |
 +-----------+------------+
 |            |
@@ -31,8 +31,9 @@ External websites (e.g., JensonUSA)
 
 ## Technology Stack
 
-- **Frontend**: Go WebAssembly with TailwindCSS
+- **Frontend**: React.js with TailwindCSS
 - **Backend API**: Go
+- **Security**: mTLS for secure client-server communication
 - **Database**: PostgreSQL on EKS
 - **Cache**: Redis on EKS
 - **Message Broker**: Apache Kafka on EKS
@@ -40,6 +41,7 @@ External websites (e.g., JensonUSA)
 - **Infrastructure as Code**: OpenTofu (Terraform compatible)
 - **Kubernetes Package Management**: Helmfile (declarative Helm chart management)
 - **CI/CD & GitOps**: GitHub Actions, ArgoCD
+- **Certificate Management**: cert-manager on EKS
 - **Monitoring**: Prometheus, Grafana
 - **Backup**: Velero
 
@@ -82,6 +84,9 @@ External websites (e.g., JensonUSA)
    cd cmd/api
    go run main.go
 
+   # Generate development certificates for mTLS (if not already present)
+   task certs:generate
+
    # Frontend (in another terminal)
    cd web/frontend
    go run -tags js,wasm main.go  # Compile WebAssembly
@@ -91,7 +96,7 @@ External websites (e.g., JensonUSA)
    make build
    ```
 
-5. Access the application at http://localhost:8080
+5. Access the application at https://localhost:8080 (note: using HTTPS for mTLS)
 
 ## Project Structure
 
@@ -140,7 +145,7 @@ See [API Documentation](./docs/api.md) for details on all available endpoints.
 
 ## Infrastructure
 
-The infrastructure is deployed on AWS EKS using a GitOps approach with ArgoCD. Kubernetes resources are managed declaratively using Helmfile. See [Infrastructure README](./infra/README.md) for details.
+The infrastructure is deployed on AWS EKS using a GitOps approach with ArgoCD. Kubernetes resources are managed declaratively using Helmfile. Client-server communications are secured using mutual TLS (mTLS) with certificates managed by cert-manager. See [Infrastructure README](./infra/README.md) for details.
 
 ## Deployment
 
