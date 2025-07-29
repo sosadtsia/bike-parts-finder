@@ -21,6 +21,7 @@ yarn-error.log
 .npm-cache
 .cache
 *.log
+.next
 
 # Environment files
 .env
