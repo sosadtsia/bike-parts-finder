@@ -60,3 +60,7 @@ yarn-error.log*
 # Kubernetes
 kubeconfig
 *.kubeconfig
+
+# Next.js
+.next
+**/.next
