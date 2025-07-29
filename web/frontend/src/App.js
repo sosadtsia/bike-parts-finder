@@ -1,18 +1,18 @@
 import React from 'react';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import HomePage from './pages/HomePage';
 
-// This component is kept for compatibility with existing imports
-// The actual app component is now in pages/_app.js
+/**
+ * This component is kept for backward compatibility.
+ * The actual application now uses Next.js and the main entry point is in pages/_app.js
+ * This file can be safely removed once all references to it are updated.
+ */
 function App() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="container mx-auto px-4 py-8 flex-grow">
-        <HomePage />
-      </main>
-      <Footer />
+    <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
+      <h1 className="text-xl font-bold mb-2">App Component (Legacy)</h1>
+      <p>
+        This is the legacy App component from the Create React App version.
+        The application now uses Next.js with pages/_app.js as the main entry point.
+      </p>
     </div>
   );
 }
