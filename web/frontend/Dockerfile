@@ -18,12 +18,14 @@ RUN npm run build
 FROM node:24.4.1-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 # Copy necessary files from build stage
 COPY --from=build /app/next.config.js ./
 COPY --from=build /app/public ./public
 COPY --from=build /app/package.json ./package.json
+
+# Copy the standalone output and static files
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 
