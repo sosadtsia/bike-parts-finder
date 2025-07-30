@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24.5-alpine AS builder
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=builder /app/api /app/api
 
 # Copy web assets
-COPY --from=builder /app/web/dist /app/web/dist
+COPY --from=builder /app/web/frontend/dist /app/web/dist
 
 # Expose port
 EXPOSE 8080

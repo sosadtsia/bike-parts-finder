@@ -11,6 +11,12 @@ RUN npm install
 # Copy the rest of the app
 COPY . .
 
+# Build the app
+RUN npm run build
+RUN mkdir -p /app/dist
+RUN cp -r /app/.next/static /app/dist/
+RUN cp -r /app/public /app/dist/
+
 # Start development server
 EXPOSE 3000
 ENV NODE_OPTIONS=--no-deprecation

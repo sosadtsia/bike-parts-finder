@@ -29,7 +29,6 @@ func (h *PartHandler) GetAllParts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// Get query parameters
-	query := r.URL.Query()
 	limit := 20
 	offset := 0
 
