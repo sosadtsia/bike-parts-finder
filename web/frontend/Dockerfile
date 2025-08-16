@@ -1,5 +1,5 @@
 # Build stage
-FROM node:24.5.0-alpine AS build
+FROM node:24.6.0-alpine AS build
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ ENV NODE_OPTIONS=--no-deprecation
 RUN npm run build
 
 # Production stage
-FROM node:24.5.0-alpine AS runner
+FROM node:24.6.0-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
