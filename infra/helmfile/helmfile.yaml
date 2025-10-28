@@ -150,7 +150,7 @@ releases:
   - name: kube-prometheus-stack
     namespace: "{{ .Values.namespace }}"
     chart: prometheus-community/kube-prometheus-stack
-    version: 78.3.0
+    version: 78.5.0
     values:
       - defaultRules:
           create: true
