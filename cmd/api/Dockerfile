@@ -15,7 +15,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o /app/api ./cmd/api
 
 # Final stage
-FROM alpine:3.22
+FROM alpine:3.23
 
 WORKDIR /app
 
