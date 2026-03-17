@@ -66,7 +66,7 @@ jobs:
           helmfile-version: 'latest'
 
       - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v1
+        uses: opentofu/setup-opentofu@v2
         with:
           tofu_version: 'latest'
           tofu_wrapper: false
